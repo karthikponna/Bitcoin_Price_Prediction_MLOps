@@ -1,0 +1,4 @@
+pandas
+requests
+pymongo==3.12.0
+python-dotenv
