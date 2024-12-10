@@ -1,3 +1,4 @@
+import joblib
 import pandas as pd
 from abc import ABC, abstractmethod
 from sklearn.preprocessing import MinMaxScaler
@@ -81,7 +82,10 @@ class MinMaxScaling(ScalingStrategy):
         X_scaled = scaler_X.fit_transform(df[features].values)
         y_scaled = scaler_y.fit_transform(df[[target]].values)
 
-        return X_scaled, y_scaled
+        joblib.dump(scaler_X, 'scaler_X.pkl')
+        joblib.dump(scaler_y, 'scaler_y.pkl')
+
+        return X_scaled, y_scaled, scaler_y
 
 
 # FeatureEngineeringContext: This will use the Strategy Pattern
@@ -95,9 +99,9 @@ class FeatureEngineering:
         df_with_features = self.feature_strategy.generate_features(df)
 
         # Scale features and target using the provided strategy
-        X_scaled, y_scaled = self.scaling_strategy.scale(df_with_features, features, target)
+        X_scaled, y_scaled, scaler_y = self.scaling_strategy.scale(df_with_features, features, target)
 
-        return df_with_features, X_scaled, y_scaled
+        return df_with_features, X_scaled, y_scaled, scaler_y
 
 
 # Example usage of FeatureEngineeringContext
