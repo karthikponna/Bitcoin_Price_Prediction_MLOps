@@ -40,7 +40,7 @@ class DataPreprocessor:
             'VOLUME_DIRECT', 'QUOTE_VOLUME_DIRECT', 'VOLUME_TOP_TIER_DIRECT', 
             'QUOTE_VOLUME_TOP_TIER_DIRECT', '_id'  # Adding '_id' to the list
         ]
-        logging.info("Dropping columns: %s", columns_to_drop)
+        logging.info("Dropping columns: %s")
         self.data = self.drop_columns(self.data, columns_to_drop)
 
         # Drop columns where the number of missing values is greater than 0
