@@ -3,6 +3,7 @@ from typing import Tuple
 import pandas as pd
 import numpy as np
 from zenml import step
+from sklearn.preprocessing import MinMaxScaler
 from src.feature_engineering import FeatureEngineering, TechnicalIndicators, MinMaxScaling
 
 # Set up logging configuration
@@ -15,7 +16,7 @@ def feature_engineering_step(
                       'HIGH_LOW_diff', 'HIGH_OPEN_diff', 'CLOSE_LOW_diff', 'OPEN_lag1', 'CLOSE_lag1',
                       'HIGH_lag1', 'LOW_lag1', 'CLOSE_roll_mean_14', 'CLOSE_roll_std_14'],
     target: str = 'CLOSE'
-) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
+) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray, MinMaxScaler]:
     """
     Performs feature engineering and scaling on the input data.
 
@@ -41,15 +42,13 @@ def feature_engineering_step(
         context = FeatureEngineering(feature_strategy, scaling_strategy)
 
         # Process features using the provided strategies
-        transformed_df, X_scaled, y_scaled = context.process_features(df, features, target)
+        transformed_df, X_scaled, y_scaled, scaler_y = context.process_features(df, features, target)
 
         # Log the results
         logging.info(f"Feature engineering completed. Data shape: {transformed_df.shape}")
-        logging.info(f"First 5 rows of scaled features: {X_scaled[:5]}")
-        logging.info(f"First 5 rows of scaled target: {y_scaled[:5]}")
-
+        
         # Return the dataframe with features and scaled data
-        return transformed_df, X_scaled, y_scaled
+        return transformed_df, X_scaled, y_scaled, scaler_y
 
     except Exception as e:
         logging.error(f"Error during feature engineering process: {e}")
