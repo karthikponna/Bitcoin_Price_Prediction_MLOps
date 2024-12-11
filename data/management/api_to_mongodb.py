@@ -15,7 +15,7 @@ MONGO_URI = os.getenv("MONGO_URI")
 API_URI = os.getenv("API_URI")
 
 # Connect to the MongoDB client
-client = MongoClient(MONGO_URI)
+client = MongoClient(MONGO_URI, ssl=True, ssl_certfile=None, ssl_ca_certs=None)
 db = client['crypto_data']
 collection = db['historical_data']
 
