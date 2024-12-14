@@ -18,7 +18,7 @@ Cryptocurrency markets are known for their extreme volatility, making price pred
 | **Category**             | **Tools/Technologies**                                  | **Description**                                                |
 |--------------------------|---------------------------------------------------------|----------------------------------------------------------------|
 | **Frontend**             | Streamlit                                               | Provides an interactive UI for real-time cryptocurrency price predictions. |
-| **Backend**              | Bitcoin Prices API                                      | Supplies historical and real-time cryptocurrency price data.   |
+| **Backend**              | CryptoCompare API                                       | Supplies historical and real-time cryptocurrency price data.   |
 | **Modeling**             | LSTM, Python                                            | Deep learning model for time-series cryptocurrency price forecasting. |
 | **Database**             | MongoDB                                                 | Stores historical price data for training and predictions.     |
 | **Orchestration**        | ZenML                                                   | Manages and orchestrates the model training and deployment pipeline. |
@@ -30,11 +30,11 @@ In this pipeline, we embark on a journey through various steps to train our mode
 🛤️ Here's the process breakdown:
 
 1. **run_pipeline.py**: Initiates the training pipeline.
-2. **ingest_data:** Fetch raw data from MongoDB using an API into a pandas DataFrame.
-3. **clean_data:** Remove unnecessary columns, handle missing values, and prepare the data for processing.
+2. **ingest_data:** Fetchs raw data from MongoDB using an API into a pandas DataFrame.
+3. **clean_data:** Removes unnecessary columns, handle missing values, and prepare the data for processing.
 4. **feature_engineering:** Create and scale features to optimize model performance.
 5. **steps/data_splitter:** Split the dataset into training and testing subsets for validation.
-6. **steps/model_training:** Train an LSTM model and track it using [MLflow autologging](https://www.mlflow.org/docs/latest/tracking.html).
+6. **steps/model_training:** Trains an LSTM model and track it using [MLflow autologging](https://www.mlflow.org/docs/latest/tracking.html).
 7. **steps/model_evaluation:** Evaluate the model and log performance metrics with MLflow autologging [MLflow autologging](https://www.mlflow.org/docs/latest/tracking.html).
 
 ![Traning Pipeline](assets/training_pipeline.png)
@@ -84,16 +84,17 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-5. **Set Up Environment Variables**
-   Create a `.env` file and add your MongoDB connection string:
-   ```
-   MONGO_URI=your_mongodb_connection_string
-   ```
+5. **Set Up Environment Variables**:
+```bash
+# Create a `.env` file and add your MongoDB connection string:
+MONGO_URI=your_mongodb_connection_string
+```
 
-6. **Set Up Free API Key**
-   Inside the `.env` file, add your CryptoCompare API Key:
-   ```
-   API_URI=you_api_key
+6. **Set Up Free API Key**:
+```bash
+# Inside the `.env` file, add your CryptoCompare API Key:
+API_URI=you_api_key
+```
 
 ## Zenml Integration 💥
 1. Install ZenML - https://docs.zenml.io/getting-started/installation 
