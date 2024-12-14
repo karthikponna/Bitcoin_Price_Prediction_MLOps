@@ -19,16 +19,21 @@ def ml_pipeline():
     # Data Ingestion Step
     raw_data = ingest_data()
 
+    # Data Cleaning Step
     cleaned_data = clean_data(raw_data)
 
+    # Feature Engineering Step
     transformed_data, X_scaled, y_scaled, scaler_y = feature_engineering_step(
         cleaned_data
     )
 
+    # Data Splitting 
     X_train, X_test, y_train, y_test = data_splitter_step(X_scaled=X_scaled, y_scaled=y_scaled)
 
+    # Model Training
     model = model_training_step(X_train, y_train)
 
+    # Model Evaluation
     evaluator = model_evaluation_step(model, X_test=X_test, y_test=y_test, scaler_y= scaler_y)
 
     return evaluator
