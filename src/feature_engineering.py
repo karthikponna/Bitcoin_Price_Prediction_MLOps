@@ -82,8 +82,8 @@ class MinMaxScaling(ScalingStrategy):
         X_scaled = scaler_X.fit_transform(df[features].values)
         y_scaled = scaler_y.fit_transform(df[[target]].values)
 
-        joblib.dump(scaler_X, 'scaler_X.pkl')
-        joblib.dump(scaler_y, 'scaler_y.pkl')
+        joblib.dump(scaler_X, 'saved_scalers/scaler_X.pkl')
+        joblib.dump(scaler_y, 'saved_scalers/scaler_y.pkl')
 
         return X_scaled, y_scaled, scaler_y
 
