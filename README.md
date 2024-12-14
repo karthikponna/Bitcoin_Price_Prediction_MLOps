@@ -1,4 +1,4 @@
-<h1 align="center">Predicting Bitcoin Prices in Real-Time with MLOps 🚀</h1>
+<h1 align="center">Predicting Bitcoin Price in Real-Time with MLOps 🚀</h1>
 
 ![Project_Architecture_Bitcoin](assets/Project_Architecture_Bitcoin.gif)
 
@@ -14,7 +14,7 @@
 ## Problem Statement 📝
 Cryptocurrency markets are known for their extreme volatility, making price prediction a significant challenge. This project aims to tackle this by developing a robust time-series prediction model using LSTM to forecast cryptocurrency prices and uncover future trends. The implementation leverages automated and modular pipeline orchestration to streamline model retraining and updates. A user-friendly interface built with Streamlit brings these forecasts to life, enabling real-time predictions and insights in a production-ready environment.
 
-## Teck Stack
+## Teck Stack 🛠️
 | **Category**             | **Tools/Technologies**                                  | **Description**                                                |
 |--------------------------|---------------------------------------------------------|----------------------------------------------------------------|
 | **Frontend**             | Streamlit                                               | Provides an interactive UI for real-time cryptocurrency price predictions. |
