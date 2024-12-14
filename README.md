@@ -1,4 +1,4 @@
-<h1 align="center">Predicting Bitcoin Price in Real-Time with MLOps 🚀</h1>
+<h1 align="center">Predicting Bitcoin Price in Real-Time using MLOps 🚀</h1>
 
 ![Project_Architecture_Bitcoin](assets/Project_Architecture_Bitcoin.gif)
 
