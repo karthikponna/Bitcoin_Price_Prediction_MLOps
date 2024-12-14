@@ -45,7 +45,7 @@ def main():
     ])
     reshaped_input = input_features.reshape((1, 1, 17))
 
-    scaler_y = joblib.load('scaler_y.pkl')
+    scaler_y = joblib.load('saved_scalers/scaler_y.pkl')
 
     # Prediction button
     if st.button("Predict Bitcoin Price"):
