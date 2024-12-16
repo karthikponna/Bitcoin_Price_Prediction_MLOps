@@ -2,6 +2,8 @@
 
 ![Project_Architecture_Bitcoin](assets/Project_Architecture_Bitcoin.gif)
 
+[Video Explaination of the project](https://youtu.be/QCOqDcD6laI?si=dS-S5Q72R2Qi7n2k)
+
 ## Table of Contents 📚 
 1. [Problem Statement](#-problem-statement)
 2. [Tech Stack](#-tech-stack) 
