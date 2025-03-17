@@ -9,40 +9,58 @@ def predictor(
     service: MLFlowDeploymentService,
     input_data: str,
 ) -> np.ndarray:
-
-    # Start the service (should be a NOP if already started)
+    """
+    Loads the input JSON (using orient="split") produced by dynamic_importer,
+    reconstructs the DataFrame, extracts the last window of scaled features,
+    reshapes the data as (1, window_size, num_features), and runs a prediction
+    using the deployed model service.
+    """
+    # Start the deployment service (no-op if already running)
     service.start(timeout=10)
 
-    # Load the input data from JSON string
     try:
-        data = json.loads(input_data)
+        # Reconstruct the DataFrame from the JSON string using 'split' orient.
+        df = pd.read_json(input_data, orient="split")
 
-        # Remove extra keys if present (like 'columns' or 'index')
-        data.pop("columns", None)
-        data.pop("index", None)
+        # Define the window size as used during training.
+        window_size = 30
 
-        # The data should be an array of dicts, one for each sample
-        if isinstance(data["data"], list):
-            data_array = np.array(data["data"])
-        else:
-            raise ValueError("The data format is incorrect, expected a list under 'data'.")
+        # Check if there is enough data for the window.
+        if len(df) < window_size:
+            raise ValueError(f"Insufficient data for prediction. "
+                             f"Need at least {window_size} rows, but got {len(df)}.")
 
-        # Check the shape of the incoming data for debugging
-        print(f"Data Array Shape: {data_array.shape}")
-        print(f"Data Array Sample: {data_array[:5]}")  # Print first few rows for debugging
+        # Define the list of feature columns that were scaled.
+        # (They are the original feature names suffixed with "_scaled".)
+        feature_cols = [col + "_scaled" for col in [
+            'LogClose', 'SMA_20', 'SMA_50', 'EMA_20',
+            'OPEN_CLOSE_diff', 'HIGH_LOW_diff', 'HIGH_OPEN_diff', 'CLOSE_LOW_diff',
+            'OPEN_lag1', 'CLOSE_lag1', 'HIGH_lag1', 'LOW_lag1',
+            'CLOSE_roll_mean_14', 'CLOSE_roll_std_14'
+        ]]
 
-        # Ensure the shape is (1, 1, 17) for the prediction model (if it's a minimal example)
-        if data_array.shape != (1, 1, 17):
-            data_array = data_array.reshape((1, 1, 17))  # Adjust the shape as needed
+        # Extract the last `window_size` rows from the DataFrame.
+        window_df = df.iloc[-window_size:]
 
-        # Run the prediction
-        try:
-            prediction = service.predict(data_array)
-        except Exception as e:
-            raise ValueError(f"Prediction failed: {e}")
+        # Extract the scaled features into a 2D numpy array.
+        data_array = window_df[feature_cols].values
 
+        # Reshape the data into a 3D array (batch_size, window_size, num_features)
+        data_array = data_array.reshape(1, window_size, len(feature_cols))
+
+        if data_array.shape != (1, 30, 14):
+            data_array = data_array.reshape((1, 30, 14))
+
+        # Debug prints for shape and sample data
+        print(f"Data Array Shape for Prediction: {data_array.shape}")
+        print(f"Data Array Sample (first row): {data_array[0, 0, :]}")
+        
+        
+
+        # Run the prediction using the deployed model service.
+        prediction = service.predict(data_array)
         return prediction
-    
+
     except json.JSONDecodeError:
         raise ValueError("Invalid JSON format in the input data.")
     except KeyError as e:

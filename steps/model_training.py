@@ -28,8 +28,9 @@ model = Model(
 @step(enable_cache=False, experiment_tracker=experiment_tracker.name, model=model)
 def model_training_step(
     X_train: np.ndarray, 
-    y_train: np.ndarray,
-    fine_tuning: bool = False
+    y_train: np.ndarray, 
+    X_val:np.ndarray, 
+    y_val:np.ndarray
 ) -> Annotated[ tf.keras.Model, ArtifactConfig(name="trained_model", is_model_artifact=True)]:
     """
     Step to build and train the LSTM model using ZenML and Neptune for tracking.
@@ -37,8 +38,7 @@ def model_training_step(
     Parameters:
         X_train (np.ndarray): The training data features.
         y_train (np.ndarray): The training data labels/target.
-        fine_tuning (bool): Whether to fine-tune the model.
-
+        
     Returns:
         Trained LSTM model.
     """
@@ -55,11 +55,12 @@ def model_training_step(
         # Log training data shapes
         mlflow.log_param("X_train_shape", X_train.shape)
         mlflow.log_param("y_train_shape", y_train.shape)
-        mlflow.log_param("fine_tuning", fine_tuning)
-
+        mlflow.log_param("X_val_shape", X_val.shape)
+        mlflow.log_param("y_val_shape", y_val.shape)
+        
         # Train the model using the strategy
         model_builder = ModelBuilder(strategy=LSTMModelStrategy())
-        model = model_builder.train(X_train, y_train, fine_tuning)
+        model = model_builder.train(X_train, y_train, X_val, y_val)
 
         # Save the trained model
         model_path = "saved_models/lstm_model.keras"
