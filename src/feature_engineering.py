@@ -1,5 +1,6 @@
 import joblib
 import pandas as pd
+import numpy as np
 from abc import ABC, abstractmethod
 from sklearn.preprocessing import MinMaxScaler
 
@@ -24,11 +25,11 @@ class TechnicalIndicators(FeatureEngineeringStrategy):
         Returns:
             pd.DataFrame: A dataframe with additional technical indicators.
         """
-        # Calculate SMA, EMA, and RSI
+        # Moving averages
         df['SMA_20'] = df['CLOSE'].rolling(window=20).mean()
         df['SMA_50'] = df['CLOSE'].rolling(window=50).mean()
         df['EMA_20'] = df['CLOSE'].ewm(span=20, adjust=False).mean()
-        
+
         # Price difference features
         df['OPEN_CLOSE_diff'] = df['OPEN'] - df['CLOSE']
         df['HIGH_LOW_diff'] = df['HIGH'] - df['LOW']
@@ -43,89 +44,74 @@ class TechnicalIndicators(FeatureEngineeringStrategy):
 
         # Rolling statistics
         df['CLOSE_roll_mean_14'] = df['CLOSE'].rolling(window=14).mean()
-        df['CLOSE_roll_std_14'] = df['CLOSE'].rolling(window=14).std()
+        df['CLOSE_roll_std_14']  = df['CLOSE'].rolling(window=14).std()
 
-        # Drop rows with missing values (due to rolling windows, shifts)
+        # Log transform for the target
+        df['LogClose'] = np.log1p(df['CLOSE'])
+
+        # Drop rows that contain NaN (due to rolling/lags)
         df.dropna(inplace=True)
 
         return df
 
     
-
-# Abstract class for Scaling strategy
-class ScalingStrategy(ABC):
+# Abstract class for Feature Sequence Generation strategy
+class FeatureSequenceStrategy(ABC):
     @abstractmethod
-    def scale(self, df: pd.DataFrame, features: list, target: str):
+    def generate_sequences(self, df: pd.DataFrame):
         pass
 
 
-# Concrete class for MinMax Scaling
-class MinMaxScaling(ScalingStrategy):
-    def scale(self, df: pd.DataFrame, features: list, target: str):
+# Concrete class for generating feature sequences
+class StandardFeatureSequenceGenerator(FeatureSequenceStrategy):
+    def __init__(self, window_size=30):
+        self.window_size = window_size
+
+    def generate_sequences(self, df: pd.DataFrame):
         """
-        Scales the features and target using MinMaxScaler.
+        Extracts features from the dataframe and creates sequences for training.
 
         Parameters:
             df: pd.DataFrame
-                The dataframe containing the features and target.
-            features: list
-                List of feature column names.
-            target: str
-                The target column name.
+                Dataframe with engineered features.
 
         Returns:
-            pd.DataFrame, pd.DataFrame: Scaled features and target
+            tuple: X_raw (np.array), y_raw (np.array), and date index after the window size.
         """
-        scaler_X = MinMaxScaler(feature_range=(0, 1))
-        scaler_y = MinMaxScaler(feature_range=(0, 1))
+        feature_cols = [
+            'LogClose', 'SMA_20', 'SMA_50', 'EMA_20',
+            'OPEN_CLOSE_diff', 'HIGH_LOW_diff', 'HIGH_OPEN_diff', 'CLOSE_LOW_diff',
+            'OPEN_lag1', 'CLOSE_lag1', 'HIGH_lag1', 'LOW_lag1',
+            'CLOSE_roll_mean_14', 'CLOSE_roll_std_14'
+        ]
 
-        X_scaled = scaler_X.fit_transform(df[features].values)
-        y_scaled = scaler_y.fit_transform(df[[target]].values)
+        X_all = df[feature_cols].values
+        y_all = df['LogClose'].values
 
-        joblib.dump(scaler_X, 'saved_scalers/scaler_X.pkl')
-        joblib.dump(scaler_y, 'saved_scalers/scaler_y.pkl')
+        X_seq, y_seq = [], []
+        for i in range(self.window_size, len(X_all)):
+            X_seq.append(X_all[i - self.window_size:i])
+            y_seq.append(y_all[i])
 
-        return X_scaled, y_scaled, scaler_y
+        return np.array(X_seq), np.array(y_seq), df.index[self.window_size:]
 
 
-# FeatureEngineeringContext: This will use the Strategy Pattern
+# Feature Engineering Context: This will use the Strategy Pattern
 class FeatureEngineering:
-    def __init__(self, feature_strategy: FeatureEngineeringStrategy, scaling_strategy: ScalingStrategy):
+    def __init__(self, feature_strategy: FeatureEngineeringStrategy, sequence_strategy: FeatureSequenceStrategy):
         self.feature_strategy = feature_strategy
-        self.scaling_strategy = scaling_strategy
+        self.sequence_strategy = sequence_strategy
 
-    def process_features(self, df: pd.DataFrame, features: list, target: str):
+    def process_features(self, df: pd.DataFrame):
         # Generate features using the provided strategy
         df_with_features = self.feature_strategy.generate_features(df)
 
-        # Scale features and target using the provided strategy
-        X_scaled, y_scaled, scaler_y = self.scaling_strategy.scale(df_with_features, features, target)
+        # Generate sequences using the sequence strategy
+        X_raw, y_raw, dates = self.sequence_strategy.generate_sequences(df_with_features)
 
-        return df_with_features, X_scaled, y_scaled, scaler_y
+        return X_raw, y_raw, dates
 
 
 # Example usage of FeatureEngineeringContext
 if __name__ == "__main__":
-    # # Assume df is your raw dataframe with columns like 'DATE', 'CLOSE', 'OPEN', etc.
-    # df = pd.read_csv('your_data.csv')
-
-    # Define the list of features and target
-    # features = ['OPEN', 'HIGH', 'LOW', 'VOLUME', 'SMA_20', 'SMA_50', 'EMA_20', 'OPEN_CLOSE_diff',
-    #             'HIGH_LOW_diff', 'HIGH_OPEN_diff', 'CLOSE_LOW_diff', 'OPEN_lag1', 'CLOSE_lag1',
-    #             'HIGH_lag1', 'LOW_lag1', 'CLOSE_roll_mean_14', 'CLOSE_roll_std_14']
-    # target = 'CLOSE'
-
-    # # Create the strategy objects
-    # feature_strategy = TechnicalIndicatorsFeatureEngineering()
-    # scaling_strategy = MinMaxScaling()
-
-    # # Create the context with both strategies
-    # context = FeatureEngineeringContext(feature_strategy, scaling_strategy)
-
-    # # Process features
-    # df_with_features, X_scaled, y_scaled = context.process_features(df, features, target)
-
-    # # Now df_with_features, X_scaled, and y_scaled are ready for use
-    # print(df_with_features.head())
-    # print(X_scaled[:5], y_scaled[:5])
-    pass 
+    pass

@@ -1,10 +1,13 @@
 import numpy as np
 import logging
 import mlflow
+import tensorflow as tf
+from abc import ABC, abstractmethod
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Input, LSTM, Dropout, Dense
+from tensorflow.keras import layers
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.regularizers import l2
-from tensorflow.keras.callbacks import EarlyStopping
 
 from typing import Any
 
@@ -13,15 +16,15 @@ class ModelBuildingStrategy:
     """
     Abstract class for model building strategy.
     """
-    def build_and_train_model(self, X_train: np.ndarray, y_train: np.ndarray, fine_tuning: bool = False) -> Any:
+    @abstractmethod
+    def build_and_train_model(self, X_train: np.ndarray, y_train: np.ndarray, X_val:np.ndarray, y_val:np.ndarray) -> Any:
         """
         Abstract method to build and train a model.
 
         Parameters:
             X_train (np.ndarray): The training data features.
             y_train (np.ndarray): The training data labels/target.
-            fine_tuning (bool): Flag to indicate if fine-tuning should be performed.
-
+            
         Returns:
             Any: A trained model instance.
         """
@@ -29,15 +32,14 @@ class ModelBuildingStrategy:
 
 # Concrete Strategy for LSTM Model
 class LSTMModelStrategy(ModelBuildingStrategy):
-    def build_and_train_model(self, X_train: np.ndarray, y_train: np.ndarray, fine_tuning: bool = False) -> Any:
+    def build_and_train_model(self, X_train: np.ndarray, y_train: np.ndarray, X_val:np.ndarray, y_val:np.ndarray) -> Any:
         """
         Trains an LSTM model on the provided training data.
 
         Parameters:
             X_train (np.ndarray): The training data features.
             y_train (np.ndarray): The training data labels/target.
-            fine_tuning (bool): Not applicable for LSTM, defaults to False.
-
+            
         Returns:
             tf.keras.Model: A trained LSTM model.
         """
@@ -46,33 +48,61 @@ class LSTMModelStrategy(ModelBuildingStrategy):
         # MLflow autologging
         mlflow.tensorflow.autolog()
 
-        logging.info(f"shape of X_train:{X_train.shape}")
+        logging.info(f"shape of X_train: {X_train.shape}")
 
-        # LSTM Model Definition
-        model = Sequential()
-        model.add(Input(shape=(X_train.shape[1], X_train.shape[2])))
 
-        model.add(LSTM(units=50, return_sequences=True, kernel_regularizer=l2(0.01)))
-        model.add(Dropout(0.3))
-        model.add(LSTM(units=50, return_sequences=False))
-        model.add(Dropout(0.2))
-        model.add(Dense(units=1))  # Adjust the number of units based on your output (e.g., regression or classification)
+        l2_reg = tf.keras.regularizers.l2(1e-4)
+        dropout_rate = 0.3
 
-        # Compiling the model
-        model.compile(optimizer='adam', loss='mean_squared_error')
+        # Determine window_size and number of features from X_train
+        window_size = X_train.shape[1]
+        num_features = X_train.shape[2]
 
-        # Early stopping to avoid overfitting
-        early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+        model = Sequential([
+            layers.Input(shape=(window_size, num_features)),
+            layers.LSTM(
+                64,
+                return_sequences=True,
+                kernel_regularizer=l2_reg,
+                recurrent_regularizer=l2_reg,
+                bias_regularizer=l2_reg
+            ),
+            layers.Dropout(dropout_rate),
+            layers.LSTM(
+                64,
+                return_sequences=False,
+                kernel_regularizer=l2_reg,
+                recurrent_regularizer=l2_reg,
+                bias_regularizer=l2_reg
+            ),
+            layers.Dropout(dropout_rate),
+            layers.Dense(1)  # outputs scaled LogClose
+        ])
 
-        
-        # Fit the model
+        optimizer = Adam(learning_rate=0.0005)
+        model.compile(loss='mse', optimizer=optimizer, metrics=['mean_absolute_error'])
+
+        early_stopping = EarlyStopping(
+            monitor='val_loss',
+            patience=30,
+            restore_best_weights=True
+        )
+
+        reduce_lr = ReduceLROnPlateau(
+            monitor='val_loss',
+            factor=0.5,
+            patience=5,
+            min_lr=1e-7,
+            verbose=1
+        )
+
         history = model.fit(
             X_train,
             y_train,
-            epochs=50,
+            validation_data = (X_val, y_val),
+            epochs=200,
             batch_size=32,
-            validation_split=0.1,
-            callbacks=[early_stopping],
+            callbacks=[early_stopping, reduce_lr],
             verbose=1
         )
 
@@ -88,7 +118,7 @@ class LSTMModelStrategy(ModelBuildingStrategy):
 class ModelBuilder:
     def __init__(self, strategy: ModelBuildingStrategy):
         """
-        Initializes the ModelBuildingStrategy with the X_train, y_train, fine_tuning and a strategy.
+        Initializes the ModelBuildingStrategy with the X_train, y_train and a strategy.
 
         Parameters:
             strategy (ModelBuildingStrategy): The strategy to use for model building.
@@ -104,19 +134,18 @@ class ModelBuilder:
         """
         self._strategy = strategy
 
-    def train(self, X_train: np.ndarray, y_train: np.ndarray, fine_tuning: bool = False) -> Any:
+    def train(self, X_train: np.ndarray, y_train: np.ndarray, X_val:np.ndarray, y_val:np.ndarray) -> Any:
         """
         Train the model using the set strategy.
 
         Parameters:
             X_train (np.ndarray): The training data features.
             y_train (np.ndarray): The training data labels/target.
-            fine_tuning (bool): Flag to indicate if fine-tuning should be performed.
-
+            
         Returns:
             Any: A trained model instance from the chosen strategy.
         """
-        return self._strategy.build_and_train_model(X_train, y_train, fine_tuning)
+        return self._strategy.build_and_train_model(X_train, y_train, X_val, y_val)
 
 if __name__ == "__main__":
     pass
