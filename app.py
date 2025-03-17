@@ -34,7 +34,7 @@ def main():
             json_result = dynamic_importer()
             # Reconstruct the DataFrame from the JSON string (using orient="split")
             df = pd.read_json(json_result, orient="split")
-            st.success("Data processed successfully. Generating 10-day predictions...")
+            st.success("Data processed successfully. Generating 10-days predictions...")
 
             # Load saved scalers
             scaler_X = joblib.load('saved_scalers/scaler_X.pkl')
